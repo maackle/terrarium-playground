@@ -1,56 +1,69 @@
 (ns terrarium.core
   (:require [ubergraph.core :as uber])
-  (:require [frinj.jvm :refer (frinj-init!)])
-  (:require [frinj.ops :refer (fj to)])
+  (:require [frinj.core :refer (zero)])
+  (:require [frinj.ops :as frinj :refer (fj fj- fj+ fj* to)])
   (:require [terrarium.util :refer (keyed)])
+  (:require [terrarium.definitions :refer (graph)])
   (:gen-class))
 
-(frinj-init!)
+(defrecord Account [name amount])
 
-(defrecord Block [name])
-(defrecord Port [type block desc rate])
-(defrecord Resource [name])
+(def accounts [(->Account :clean-water (fj 0 :gal))
+               (->Account :poo-water (fj 0 :gal))])
 
-(def blocks (map ->Block [:fishtank :plants :jug]))
+(def initial-state {:graph graph
+                    :accounts accounts})
 
-(def ports
-  (let [B (partial get (keyed :name blocks))
-        in (partial ->Port :input)
-        out (partial ->Port :output)]
-    [(in (B :fishtank) :fish-food (fj 8 :oz :per :day))
-     (in (B :fishtank) :clean-water (fj 50 :gal :per :day))
-     (out (B :fishtank) :fish (fj 60 :lb :per :year))
-     (out (B :fishtank) :poo-water (fj 50 :gal :per :day))
+(def state (atom initial-state))
 
-     (in (B :plants) :poo-water (fj 50 :gal :per :day))
-     (out (B :plants) :clean-water (fj 50 :gal :per :day))
-     (out (B :plants) :biomass (fj 360 :lb :per :year))
+(defn fj-inv
+  "Unary negation for frinj values (there must be a better way!)"
+  [q]
+  (fj- q (fj* q 2)))
 
-     (out (B :jug) :clean-water (fj 50 :gal :per :day))]))
+(defn port-flux
+  "Get positive flow for outputs, negative flow for inputs"
+  [port]
+  (case (:type port)
+    :output (:rate port)
+    :input (fj-inv (:rate port))
+    nil))
 
-(defn get-port
-  ([block-name port-name]
-   (->> ports
-        (filter #(and (= block-name (get-in % [:block :name])) (= port-name (:desc %))))
-        (first))))
+#_(defn get-resources
+  [graph]
+  (let [edges (uber/edges graph)]
+    (distinct (map #(uber/attrs graph %) edges))))
 
-(defn mk-connection
-  [[block-out-name output-name] [block-in-name input-name] resource-name]
-  (let [input (get-port block-in-name input-name)
-        output (get-port block-out-name output-name)
-        data (->Resource resource-name)]
-    [output input data]))
+#_(defn get-ports
+  [graph]
+  (let [edges (uber/edges graph)]
+    (mapcat #(conj [] (uber/src %1) (uber/dest %1)) edges)
+))
 
-(def connections
-  [(mk-connection [:fishtank :poo-water] [:plants :poo-water] :poo-water)
-   (mk-connection [:plants :clean-water] [:fishtank :clean-water] :clean-water)
-   (mk-connection [:jug :clean-water] [:fishtank :clean-water] :clean-water)])
+(defn calc-net-flow
+  "Calculate net in/out flow through each Account"
+  [graph dt]
+  (let [edges (uber/edges graph)
+        get-resource #(uber/attr graph % :name)
+        get-amount #(if % (fj* % dt))
+        reduce-fn (fn [flux edge]
+                    (let [edge-key (get-resource edge)
+                          port-fluxes (map port-flux [(uber/src edge) (uber/dest edge)])
+                          port-amounts (map get-amount port-fluxes)
+                          update-fn (fn [v]
+                                      (let [amounts (filter identity (conj port-amounts v))
+                                            total (reduce fj+ amounts)]
+                                        total))]
+                      (update flux (get-resource edge) update-fn)))]
+    (reduce reduce-fn {} edges)))
 
-(def graph (-> (uber/graph)
-               (uber/add-nodes* ports)
-               (uber/add-edges* connections)))
+(defn do-step
+  [dt]
+  (let [graph (:graph @state)
+        accounts (:accounts @state)]
+    ))
 
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (println "Hello, World!"))
+  (uber/pprint graph))
