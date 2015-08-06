@@ -2,68 +2,43 @@
   (:require [ubergraph.core :as uber])
   (:require [frinj.jvm :refer (frinj-init!)])
   (:require [frinj.ops :refer (fj to)])
+  (:require [terrarium.util :refer (keyed)])
   (:gen-class))
 
 (frinj-init!)
 
-(defn make-port [type desc rate] {:type type
-                                  :desc desc
-                                  :rate rate})
+(defrecord Block [name])
+(defrecord Port [type block desc rate])
+(defrecord Resource [name])
 
-(def make-input (partial make-port :input))
-(def make-output (partial make-port :output))
+(def blocks (map ->Block [:fishtank :plants :jug]))
 
-(defn make-resource [name] {:name name})
+(def ports
+  (let [B (partial get (keyed :name blocks))
+        in (partial ->Port :input)
+        out (partial ->Port :output)]
+    [(in (B :fishtank) :fish-food (fj 8 :oz :per :day))
+     (in (B :fishtank) :clean-water (fj 50 :gal :per :day))
+     (out (B :fishtank) :fish (fj 60 :lb :per :year))
+     (out (B :fishtank) :poo-water (fj 50 :gal :per :day))
 
-(defn keyed
-  "Turn a seq of maps into a map of maps, where the key of the new map equals the value at key"
-  [k vs]
-  (reduce (fn [a v] (assoc a (k v) v)) {} vs))
+     (in (B :plants) :poo-water (fj 50 :gal :per :day))
+     (out (B :plants) :clean-water (fj 50 :gal :per :day))
+     (out (B :plants) :biomass (fj 360 :lb :per :year))
 
-(def blocks
-  (keyed :name
-         [{:name :fishtank
-           :ports (keyed :desc
-                         [(make-input :fish-food (fj 8 :oz :per :day))
-                          (make-input :clean-water (fj 50 :gal :per :day))
-                          (make-output :fish (fj 60 :lb :per :year))
-                          (make-output :poo-water (fj 50 :gal :per :day))])}
-          {:name :plants
-           :ports (keyed :desc
-                         [(make-input :poo-water (fj 50 :gal :per :day))
-                          (make-output :clean-water (fj 50 :gal :per :day))
-                          (make-output :biomass (fj 360 :lb :per :year))])}
-          {:name :jug
-           :ports (keyed :desc
-                         [(make-input :clean-water (fj 50 :gal :per :day))
-
-                          ])}]))
-
-(def all-ports (->> (vals blocks)
-                    (map #(vals (get % :ports)))
-                    (flatten)))
-
-(defn block-ports
-  ([block]
-   (vals (:ports block)))
-  ([block type]
-   (filter #(= type (:type %)) (block-ports block))))
-
-(def inputs #(block-ports % :input))
-(def outputs #(block-ports % :output))
+     (out (B :jug) :clean-water (fj 50 :gal :per :day))]))
 
 (defn get-port
-  ([block-name input-name]
-   (-> blocks
-       (get block-name)
-       (get :ports)
-       (get input-name))))
+  ([block-name port-name]
+   (->> ports
+        (filter #(and (= block-name (get-in % [:block :name])) (= port-name (:desc %))))
+        (first))))
 
 (defn mk-connection
   [[block-out-name output-name] [block-in-name input-name] resource-name]
   (let [input (get-port block-in-name input-name)
         output (get-port block-out-name output-name)
-        data {:resource resource-name}]
+        data (->Resource resource-name)]
     [output input data]))
 
 (def connections
@@ -72,11 +47,8 @@
    (mk-connection [:jug :clean-water] [:fishtank :clean-water] :clean-water)])
 
 (def graph (-> (uber/graph)
-               (uber/add-nodes* all-ports)
+               (uber/add-nodes* ports)
                (uber/add-edges* connections)))
-
-(defn by-name [coll name]
-    (first (filter #(= name (get % :name)) coll)))
 
 (defn -main
   "I don't do a whole lot ... yet."
