@@ -1,14 +1,8 @@
-(ns terrarium.definitions
+(ns terrarium.data
   (:require [ubergraph.core :as uber])
-  (:require [frinj.jvm :refer (frinj-init!)])
   (:require [frinj.ops :refer (fj to)])
+  (:require [terrarium.model :refer :all])
   (:require [terrarium.util :refer (keyed)]))
-
-(frinj-init!)
-
-(defrecord Block [name])
-(defrecord Port [type block desc rate])
-(defrecord Resource [name])
 
 (def blocks (map ->Block [:fishtank :plants :jug]))
 
@@ -27,18 +21,7 @@
 
      (out (B :jug) :clean-water (fj 500 :gal :per :day))]))
 
-(defn get-port
-  ([block-name port-name]
-   (->> ports
-        (filter #(and (= block-name (get-in % [:block :name])) (= port-name (:desc %))))
-        (first))))
-
-(defn mk-connection
-  [[block-out-name output-name] [block-in-name input-name] resource-name]
-  (let [input (get-port block-in-name input-name)
-        output (get-port block-out-name output-name)
-        data (->Resource resource-name)]
-    [output input data]))
+(def mk-connection (connection-fn ports))
 
 (def connections
   [(mk-connection [:fishtank :poo-water] [:plants :poo-water] :poo-water)

@@ -3,7 +3,7 @@
   (:require [frinj.core :refer (zero)])
   (:require [frinj.ops :as frinj :refer (fj fj- fj+ fj* to)])
   (:require [terrarium.util :refer (keyed)])
-  (:require [terrarium.definitions :refer (graph)])
+  (:require [terrarium.data :refer (graph)])
   (:gen-class))
 
 (defrecord Account [name amount])
@@ -40,22 +40,26 @@
     (mapcat #(conj [] (uber/src %1) (uber/dest %1)) edges)
 ))
 
+(defn get-resource-name [edge] (uber/attr graph edge :name))
+
 (defn calc-net-flow
   "Calculate net in/out flow through each Account"
   [graph dt]
   (let [edges (uber/edges graph)
-        get-resource #(uber/attr graph % :name)
         get-amount #(if % (fj* % dt))
         reduce-fn (fn [flux edge]
-                    (let [edge-key (get-resource edge)
-                          port-fluxes (map port-flux [(uber/src edge) (uber/dest edge)])
-                          port-amounts (map get-amount port-fluxes)
+                    (let [edge-key (get-resource-name edge)
+                          port-amounts (map
+                                         (comp get-amount port-flux)
+                                         [(uber/src edge) (uber/dest edge)])
                           update-fn (fn [v]
                                       (let [amounts (filter identity (conj port-amounts v))
                                             total (reduce fj+ amounts)]
                                         total))]
-                      (update flux (get-resource edge) update-fn)))]
+                      (update flux edge-key update-fn)))]
     (reduce reduce-fn {} edges)))
+
+
 
 (defn do-step
   [dt]
