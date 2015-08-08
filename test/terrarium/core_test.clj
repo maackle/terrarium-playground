@@ -1,6 +1,8 @@
 (ns terrarium.core-test
-  (:use clojure.test)
+  (:use clojure.test
+        clojure.pprint)
   (:require [frinj.ops :refer (fj)]
+            [ubergraph.core :as uber]
             [terrarium.model :refer :all]
             [terrarium.core :refer :all]
             [terrarium.util :refer (keyed)]))
@@ -24,25 +26,30 @@
 
      (out (B :Z) :a (fj 800 :mL :per :day))]))
 
-(def mk-connection (connection-fn ports))
+(def resources (map ->Resource [:r1 :r2 :r3]))
+
+; (def mk-connection (connection-fn ports))
 
 (deftest simple
 
+  (def connections (mk-connections ports resources [[[:X :a] :r1 [:Y :c]]]))
+
+  (def graph (build-graph ports resources connections))
+
+  (testing "graph structure"
+    (is (= 12 (count (uber/nodes graph))))
+    (is (= 2 (count (uber/edges graph))))))
+
+  ; (testing "single connection"
+  ;   (def flux (calc-net-flow graph (fj 1 :day)))
+  ;   (is (= 10 flux))))
+
+#_(deftest less-simple
+
   (def connections
-    [(mk-connection [:X :a] [:Y :c] :r1)])
+    [(mk-connection [:Z :a] :r1 [:Y :b])])
 
-  (def graph (build-graph ports connections))
-
-  (testing "single connection"
-    (def flux (calc-net-flow graph (fj 1 :day)))
-    (is (= 10 flux))))
-
-(deftest less-simple
-
-  (def connections
-    [(mk-connection [:Z :a] [:Y :b] :r1)])
-
-  (def graph (build-graph ports connections))
+  (def graph (build-graph ports resources connections))
 
   (testing "2"
     (def flux (calc-net-flow graph (fj 1 :day)))

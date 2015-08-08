@@ -21,16 +21,16 @@
 
      (out (B :jug) :clean-water (fj 500 :gal :per :day))]))
 
-(def mk-connection (connection-fn ports))
+(def resources (map ->Resource [:poo-water
+                                :clean-water]))
 
 (def connections
-  [(mk-connection [:fishtank :poo-water] [:plants :poo-water] :poo-water)
-   (mk-connection [:plants :clean-water] [:fishtank :clean-water] :clean-water)
-   (mk-connection [:jug :clean-water] [:fishtank :clean-water] :clean-water)])
+  (mk-connections ports resources
+                  [[[:fishtank :poo-water] :poo-water [:plants :poo-water]]
+                   [[:plants :clean-water] :clean-water [:fishtank :clean-water]]
+                   [[:jug :clean-water] :clean-water [:fishtank :clean-water]]]))
 
-(def graph (-> (uber/digraph)
-               (uber/add-nodes* ports)
-               (uber/add-edges* connections)))
+(def graph (build-graph ports resources connections))
 
 (def accounts [(->Account :clean-water (fj 0 :gal))
                (->Account :poo-water (fj 0 :gal))])
