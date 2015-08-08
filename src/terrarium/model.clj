@@ -8,6 +8,8 @@
 (defrecord Block [name])
 (defrecord Port [type block desc rate])
 (defrecord Resource [name])
+(defrecord Account [name amount])
+
 
 (defn get-port
   ([ports block-name port-name]
@@ -21,3 +23,9 @@
           output (get-port ports block-out-name output-name)
           data (->Resource resource-name)]
       [output input data])))
+
+(defn build-graph
+  [ports connections]
+  (-> (uber/digraph)
+      (uber/add-nodes* ports)
+      (uber/add-edges* connections)))

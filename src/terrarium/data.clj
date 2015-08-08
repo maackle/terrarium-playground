@@ -32,3 +32,10 @@
                (uber/add-nodes* ports)
                (uber/add-edges* connections)))
 
+(def accounts [(->Account :clean-water (fj 0 :gal))
+               (->Account :poo-water (fj 0 :gal))])
+
+(def initial-state {:graph graph
+                    :accounts accounts})
+
+(def state (atom initial-state))

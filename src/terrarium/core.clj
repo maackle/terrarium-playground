@@ -3,18 +3,7 @@
   (:require [frinj.core :refer (zero)])
   (:require [frinj.ops :as frinj :refer (fj fj- fj+ fj* to)])
   (:require [terrarium.util :refer (keyed)])
-  (:require [terrarium.data :refer (graph)])
   (:gen-class))
-
-(defrecord Account [name amount])
-
-(def accounts [(->Account :clean-water (fj 0 :gal))
-               (->Account :poo-water (fj 0 :gal))])
-
-(def initial-state {:graph graph
-                    :accounts accounts})
-
-(def state (atom initial-state))
 
 (defn fj-inv
   "Unary negation for frinj values (there must be a better way!)"
@@ -40,7 +29,7 @@
     (mapcat #(conj [] (uber/src %1) (uber/dest %1)) edges)
 ))
 
-(defn get-resource-name [edge] (uber/attr graph edge :name))
+(defn get-resource-name [graph edge] (uber/attr graph edge :name))
 
 (defn calc-net-flow
   "Calculate net in/out flow through each Account"
@@ -48,7 +37,7 @@
   (let [edges (uber/edges graph)
         get-amount #(if % (fj* % dt))
         reduce-fn (fn [flux edge]
-                    (let [edge-key (get-resource-name edge)
+                    (let [edge-key (get-resource-name graph edge)
                           port-amounts (map
                                          (comp get-amount port-flux)
                                          [(uber/src edge) (uber/dest edge)])
@@ -62,7 +51,7 @@
 
 
 (defn do-step
-  [dt]
+  [state dt]
   (let [graph (:graph @state)
         accounts (:accounts @state)]
     ))
@@ -70,4 +59,4 @@
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (uber/pprint graph))
+  )
