@@ -11,6 +11,7 @@
 (defrecord Resource [name])
 (defrecord Account [name amount])
 
+(def mk-resource (comp #(assoc % :type :resource) ->Resource))
 
 (defn get-port
   "Extract a port from a list by looking up block name and port name"

@@ -31,23 +31,35 @@
 
 (defn get-resource-name [graph edge] (uber/attr graph edge :name))
 
+(defn edge-to-map
+  [edge]
+  (let [f (fn [n] [(:type n) n])]
+    (into {} (map f [(uber/src edge) (uber/dest edge)]))))
+
+(defn edge-reduce-fn
+  [fluxmap edge]
+  (let [m (edge-to-map edge)
+        resource (:resource m)
+        port (if (contains? m :input) (:input m) (:output m))
+        flux (port-flux port)
+        update-fn (partial fj+ flux)]
+    (update m (:name resource) update-fn)))
+
 (defn calc-net-flow
-  "Calculate net in/out flow through each Account"
+  "Calculate net in/out flow through each Account."
   [graph dt]
   (let [edges (uber/edges graph)
         get-amount #(if % (fj* % dt))
-        reduce-fn (fn [flux edge]
-                    (let [edge-key (get-resource-name graph edge)
-                          port-amounts (map
-                                         (comp get-amount port-flux)
-                                         [(uber/src edge) (uber/dest edge)])
-                          update-fn (fn [v]
-                                      (let [amounts (filter identity (conj port-amounts v))
-                                            total (reduce fj+ amounts)]
-                                        total))]
-                      (update flux edge-key update-fn)))]
+        reduce-fn (fn [fluxmap edge]
+                    (let [m (edge-to-map edge)]
+                      (if-let [port (if (contains? m :input) (:input m) (:output m))]
+                        (let [resource (:resource m)
+                              flux (port-flux port)
+                              amount (fj* flux dt)
+                              update-fn #(if % (fj+ % amount) amount)]
+                          (update fluxmap (:name resource) update-fn))
+                        fluxmap)))]
     (reduce reduce-fn {} edges)))
-
 
 
 (defn do-step

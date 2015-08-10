@@ -4,8 +4,9 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.7.0"]
+                 [org.clojure/tools.namespace "0.2.11"]
                  [ubergraph "0.1.5"]
                  [frinj "0.2.5"]]
-  :main ^:skip-aot terrarium.core
+  :main ^:skip-aot terrarium.repl
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

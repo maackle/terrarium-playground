@@ -21,8 +21,8 @@
 
      (out (B :jug) :clean-water (fj 500 :gal :per :day))]))
 
-(def resources (map ->Resource [:poo-water
-                                :clean-water]))
+(def resources (map mk-resource [:poo-water
+                                 :clean-water]))
 
 (def connections
   (mk-connections ports resources

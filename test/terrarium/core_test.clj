@@ -26,9 +26,19 @@
 
      (out (B :Z) :a (fj 800 :mL :per :day))]))
 
-(def resources (map ->Resource [:r1 :r2 :r3]))
+(def resources (map mk-resource [:r1 :r2 :r3]))
 
-; (def mk-connection (connection-fn ports))
+(deftest core
+
+  (def connections (mk-connections ports resources [[[:X :a] :r1 [:Y :c]]]))
+
+  (def graph (build-graph ports resources connections))
+
+  (testing "edge-to-map"
+    (let [maps (map edge-to-map (uber/edges graph))]
+      (is (= 2 (count maps)))
+      (is (every? #(contains? % :resource) maps))
+		)))
 
 (deftest simple
 
@@ -40,17 +50,15 @@
     (is (= 12 (count (uber/nodes graph))))
     (is (= 2 (count (uber/edges graph))))))
 
-  ; (testing "single connection"
-  ;   (def flux (calc-net-flow graph (fj 1 :day)))
-  ;   (is (= 10 flux))))
 
 #_(deftest less-simple
 
-  (def connections
-    [(mk-connection [:Z :a] :r1 [:Y :b])])
+  (def connections (mk-connections ports resources
+                                   [[:Z :a] :r1 [:Y :b]]))
 
   (def graph (build-graph ports resources connections))
 
   (testing "2"
     (def flux (calc-net-flow graph (fj 1 :day)))
+    (prn "flux" flux)
     (is (= 17/2500 (get-in flux [:r1 :v])))))
