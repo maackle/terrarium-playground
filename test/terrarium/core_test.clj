@@ -51,14 +51,13 @@
     (is (= 2 (count (uber/edges graph))))))
 
 
-#_(deftest less-simple
+(deftest less-simple
 
-  (def connections (mk-connections ports resources
-                                   [[:Z :a] :r1 [:Y :b]]))
+  (def connections (mk-connections ports resources [[[:Z :a] :r1 [:Y :b]]]))
 
   (def graph (build-graph ports resources connections))
 
   (testing "2"
     (def flux (calc-net-flow graph (fj 1 :day)))
-    (prn "flux" flux)
+    (pprint flux)
     (is (= 17/2500 (get-in flux [:r1 :v])))))
