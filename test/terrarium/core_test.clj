@@ -15,7 +15,7 @@
   (let [B (partial get (keyed :name blocks))
         in (partial ->Port :input)
         out (partial ->Port :output)]
-    [(in  (B :X) :a (fj 1 :L :per :day))
+    [(in  (B :X) :a (fj 20 :L :per :day))
      (in  (B :X) :b (fj 2 :kg :per :day))
      (out (B :X) :c (fj 3 :lb :per :day))
      (out (B :X) :d (fj 4 :lb :per :day))
@@ -65,13 +65,20 @@
         state (atom {:graph graph
                      :accounts accounts})]
 
-    (uber/pprint graph)
-    #_(testing "calc-net-flux"
+    (testing "calc-net-flux"
       (def flux (calc-net-flux graph dt))
       (is (= :umm (get-in flux [:r1 :ports])))
       (is (= 17/2500 (get-in flux [:r1 :amount :v]))))
 
     (testing "calc-active-blocks"
-      (pprint (calc-active-blocks state dt)))
+      (let [blockmap (keyed :name blocks)]
+        (is (=
+              (calc-active-blocks @state dt)
+              [(:Y blockmap) (:Z blockmap)]))
+        (swap! state assoc-in [:accounts 1 :amount] (fj 1000 :L))
+        (is (=
+              (calc-active-blocks @state dt)
+              [(:X blockmap) (:Y blockmap) (:Z blockmap)]))
+        ))
     )
   )

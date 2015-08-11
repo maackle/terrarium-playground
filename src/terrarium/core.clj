@@ -2,7 +2,9 @@
   (:use clojure.pprint)
   (:require [ubergraph.core :as uber]
             [frinj.core :refer (zero)]
-            [frinj.ops :as frinj :refer (fj fj- fj+ fj* to)]
+            [frinj.ops :as frinj :refer (fj fj- fj+ fj* fj< to)]
+            [terrarium.model :refer :all]
+            [terrarium.util :refer :all]
             )
   (:gen-class))
 
@@ -57,15 +59,19 @@
     (reduce reduce-fn initial-fluxmap edgemaps)))
 
 (defn calc-active-blocks
-  [state dt]
-  (let [graph (:graph @state)
-        accounts (:accounts @state)
-        fluxmap (calc-net-flux graph dt)]
-    (for [{account-name :name account-amount :amount} accounts]
-      (let [{flux-amount :amount flux-ports :ports} (get fluxmap account-name)
-            inputs (filter (comp (partial = :input) :type) flux-ports)]
-        inputs
-        ))))
+  [{:keys [graph accounts]} dt]
+  (let [blocks (->> graph uber/nodes (filter port-node?) (map :block) distinct)
+        fluxmap (calc-net-flux graph dt)
+        rf (fn [active-blocks account]
+             (let [{account-name :name account-amount :amount} account
+                   {flux-amount :amount flux-ports :ports} (get fluxmap account-name)
+                   inputs (filter (comp (partial = :input) :type) flux-ports)
+                   input-blocks (->> inputs (map :block) set)]
+               (if (> 0 (:v (fj+ account-amount flux-amount)))
+                 (remove #(contains? input-blocks %) active-blocks)
+                 active-blocks)
+               ))]
+    (reduce rf blocks accounts)))
 
 (defn do-step
   [state dt]

@@ -18,3 +18,6 @@
     `(if-let [~(first bindings) ~(second bindings)]
        (and-let ~(drop 2 bindings) ~expr))
      expr))
+
+
+(defn trace [x] (println "   vvvvvv   \n" x) x)

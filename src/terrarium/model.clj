@@ -15,14 +15,16 @@
 (def mk-port (comp #(assoc % :type :port) ->Port))
 (def mk-resource (comp #(assoc % :type :resource) ->Resource))
 
+(defn port-node?
+  [node]
+  (contains? #{:input :output} (:type node)))
+
 (defn get-port
   "Extract a port from a list by looking up block name and port name"
   ([ports block-name port-name]
    (->> ports
         (filter #(and (= block-name (get-in % [:block :name])) (= port-name (:desc %))))
         (first))))
-
-(defn stuff [x] (do (println x) x))
 
 (defn mk-connections [ports resources connections]
   "Create a list of connection definitions that can be fed to an uber/graph
