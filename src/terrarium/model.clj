@@ -1,8 +1,9 @@
 (ns terrarium.model
   (:use clojure.pprint)
   (:require [ubergraph.core :as uber])
-  (:require [frinj.jvm :refer (frinj-init!)])
-  (:require [terrarium.util :refer (keyed)]))
+  (:require [frinj.jvm :refer (frinj-init!)]
+            [terrarium.util :refer :all])
+  )
 
 (frinj-init!)
 
@@ -11,6 +12,7 @@
 (defrecord Resource [name])
 (defrecord Account [name amount])
 
+(def mk-port (comp #(assoc % :type :port) ->Port))
 (def mk-resource (comp #(assoc % :type :resource) ->Resource))
 
 (defn get-port

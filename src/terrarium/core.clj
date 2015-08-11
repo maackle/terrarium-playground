@@ -1,14 +1,15 @@
 (ns terrarium.core
-  (:require [ubergraph.core :as uber])
-  (:require [frinj.core :refer (zero)])
-  (:require [frinj.ops :as frinj :refer (fj fj- fj+ fj* to)])
-  (:require [terrarium.util :refer (keyed)])
+  (:use clojure.pprint)
+  (:require [ubergraph.core :as uber]
+            [frinj.core :refer (zero)]
+            [frinj.ops :as frinj :refer (fj fj- fj+ fj* to)]
+            )
   (:gen-class))
 
 (defn fj-inv
   "Unary negation for frinj values (there must be a better way!)"
   [q]
-  (fj- q (fj* q 2)))
+  (fj- q q q))
 
 (defn port-flux
   "Get positive flow for outputs, negative flow for inputs"
@@ -36,36 +37,41 @@
   (let [f (fn [n] [(:type n) n])]
     (into {} (map f [(uber/src edge) (uber/dest edge)]))))
 
-(defn edge-reduce-fn
-  [fluxmap edge]
-  (let [m (edge-to-map edge)
-        resource (:resource m)
-        port (if (contains? m :input) (:input m) (:output m))
-        flux (port-flux port)
-        update-fn (partial fj+ flux)]
-    (update m (:name resource) update-fn)))
-
-(defn calc-net-flow
+(defn calc-net-flux
   "Calculate net in/out flow through each Account."
   [graph dt]
   (let [edges (uber/edges graph)
+        edgemaps (map edge-to-map edges)
         get-amount #(if % (fj* % dt))
-        reduce-fn (fn [fluxmap edge]
-                    (let [m (edge-to-map edge)]
-                      (if-let [port (if (contains? m :input) (:input m) (:output m))]
-                        (let [resource (:resource m)
-                              flux (port-flux port)
-                              amount (fj* flux dt)
-                              update-fn #(if % (fj+ % amount) amount)]
-                          (update fluxmap (:name resource) update-fn))
-                        fluxmap)))]
-    (reduce reduce-fn {} edges)))
+        initial-fluxmap {:amount nil :ports [] :blocks #{}}
+        reduce-fn (fn [fluxmap edgemap]
+                    (if-let [port (if (contains? edgemap :input) (:input edgemap) (:output edgemap))]
+                      (let [resource (:resource edgemap)
+                            flux (port-flux port)
+                            amount (fj* flux dt)
+                            res-name (:name resource)]
+                        (-> fluxmap
+                          (update-in [res-name :amount] #(if % (fj+ % amount) amount))
+                          (update-in [res-name :ports] #(conj % port))))
+                      fluxmap))]
+    (reduce reduce-fn initial-fluxmap edgemaps)))
 
+(defn calc-active-blocks
+  [state dt]
+  (let [graph (:graph @state)
+        accounts (:accounts @state)
+        fluxmap (calc-net-flux graph dt)]
+    (for [{account-name :name account-amount :amount} accounts]
+      (let [{flux-amount :amount flux-ports :ports} (get fluxmap account-name)
+            inputs (filter (comp (partial = :input) :type) flux-ports)]
+        inputs
+        ))))
 
 (defn do-step
   [state dt]
   (let [graph (:graph @state)
         accounts (:accounts @state)]
+
     ))
 
 (defn -main

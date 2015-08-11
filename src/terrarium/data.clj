@@ -1,8 +1,9 @@
 (ns terrarium.data
   (:require [ubergraph.core :as uber])
   (:require [frinj.ops :refer (fj to)])
-  (:require [terrarium.model :refer :all])
-  (:require [terrarium.util :refer (keyed)]))
+  (:require [terrarium.model :refer :all]
+            [terrarium.util :refer :all])
+  )
 
 (def blocks (map ->Block [:fishtank :plants :jug]))
 

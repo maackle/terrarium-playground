@@ -5,7 +5,8 @@
             [ubergraph.core :as uber]
             [terrarium.model :refer :all]
             [terrarium.core :refer :all]
-            [terrarium.util :refer (keyed)]))
+            [terrarium.util :refer :all]
+            ))
 
 
 (def blocks (map ->Block [:X :Y :Z]))
@@ -14,7 +15,7 @@
   (let [B (partial get (keyed :name blocks))
         in (partial ->Port :input)
         out (partial ->Port :output)]
-    [(in  (B :X) :a (fj 1 :kg :per :day))
+    [(in  (B :X) :a (fj 1 :L :per :day))
      (in  (B :X) :b (fj 2 :kg :per :day))
      (out (B :X) :c (fj 3 :lb :per :day))
      (out (B :X) :d (fj 4 :lb :per :day))
@@ -30,34 +31,47 @@
 
 (deftest core
 
-  (def connections (mk-connections ports resources [[[:X :a] :r1 [:Y :c]]]))
+  (let [connections (mk-connections ports resources [[[:X :a] :r1 [:Y :c]]])
+        graph (build-graph ports resources connections)]
 
-  (def graph (build-graph ports resources connections))
+    (testing "edge-to-map"
+      (let [maps (map edge-to-map (uber/edges graph))]
+        (is (= 2 (count maps)))
+        (is (every? #(contains? % :resource) maps))
+        ))))
 
-  (testing "edge-to-map"
-    (let [maps (map edge-to-map (uber/edges graph))]
-      (is (= 2 (count maps)))
-      (is (every? #(contains? % :resource) maps))
-		)))
+(deftest graph-structure
 
-(deftest simple
+  (let [connections (mk-connections ports resources [[[:X :a] :r1 [:Y :c]]])
+        graph (build-graph ports resources connections)]
 
-  (def connections (mk-connections ports resources [[[:X :a] :r1 [:Y :c]]]))
+    (testing "graph structure"
+      (is (= 12 (count (uber/nodes graph))))
+      (is (= 2 (count (uber/edges graph)))))
 
-  (def graph (build-graph ports resources connections))
-
-  (testing "graph structure"
-    (is (= 12 (count (uber/nodes graph))))
-    (is (= 2 (count (uber/edges graph))))))
+    ; TODOs
+    ; - test that outputs and inputs don't show up in the wrong places
+    ))
 
 
 (deftest less-simple
 
-  (def connections (mk-connections ports resources [[[:Z :a] :r1 [:Y :b]]]))
+  (let [connections (mk-connections ports resources [[[:Z :a] :r1 [:Y :b]]
+                                                     [[:Y :c] :r2 [:X :a]]])
+        dt (fj 1 :day)
+        graph (build-graph ports resources connections)
+        accounts [(->Account :r1 (fj 10 :L))
+                  (->Account :r2 (fj 10 :L))]
+        state (atom {:graph graph
+                     :accounts accounts})]
 
-  (def graph (build-graph ports resources connections))
+    (uber/pprint graph)
+    #_(testing "calc-net-flux"
+      (def flux (calc-net-flux graph dt))
+      (is (= :umm (get-in flux [:r1 :ports])))
+      (is (= 17/2500 (get-in flux [:r1 :amount :v]))))
 
-  (testing "2"
-    (def flux (calc-net-flow graph (fj 1 :day)))
-    (pprint flux)
-    (is (= 17/2500 (get-in flux [:r1 :v])))))
+    (testing "calc-active-blocks"
+      (pprint (calc-active-blocks state dt)))
+    )
+  )

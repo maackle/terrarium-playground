@@ -9,3 +9,12 @@
 (defn by-name [coll name]
   "Get first item in sequence whose :name property equals `name`"
   (first (filter #(= name (get % :name)) coll)))
+
+
+(defmacro and-let
+  "from http://edtsech.github.io/2012/12/and-let.html"
+  [bindings expr]
+  (if (seq bindings)
+    `(if-let [~(first bindings) ~(second bindings)]
+       (and-let ~(drop 2 bindings) ~expr))
+     expr))
