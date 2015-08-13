@@ -78,8 +78,6 @@
     (testing "apply-flux"
       (let [fluxmap (calc-net-flux graph blocks)
             accounts' (apply-flux fluxmap accounts dt)]
-        (trace accounts)
-        (trace accounts')
         (is ((comp not =) accounts accounts'))))
 
     (testing "calc-active-blocks"
@@ -93,5 +91,12 @@
               (calc-active-blocks graph fluxmap blocks bigger-accounts dt)
               [(:X blockmap) (:Y blockmap) (:Z blockmap)]))
         ))
+
+    (testing "do-step"
+      (let [ret (do-step graph blocks accounts dt)
+            [accounts active-blocks fluxmap] ret
+            blockmap (keyed :name blocks)]
+        (is (= active-blocks [(:Y blockmap) (:Z blockmap)]))
+        (is (= 0 (get-in fluxmap [:r1 :rate])))))
     )
   )

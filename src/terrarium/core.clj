@@ -81,13 +81,20 @@
               (update-in account [resource-name :amount] (partial fj+ flux-amount))))]
     (reduce-kv f accounts fluxmap)))
 
-#_(defn do-step
-  [graph blocks dt]
-  (let [iter (fn [blocks ]
-               (calc-net-flux))
-        accounts (:accounts @state)]
-
-    ))
+(defn do-step
+  [graph blocks accounts dt]
+  (let [iter (fn [active-blocks ]
+               (let [fluxmap (calc-net-flux graph blocks)
+                     active-blocks' (calc-active-blocks graph
+                                                        fluxmap
+                                                        active-blocks
+                                                        accounts
+                                                        dt)]
+                 (if (= active-blocks active-blocks')
+                   [accounts active-blocks fluxmap]
+                   (recur active-blocks'))
+                 ))]
+    (iter blocks)))
 
 (defn -main
   "I don't do a whole lot ... yet."
