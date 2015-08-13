@@ -76,12 +76,12 @@
 
 (defn apply-flux
   [fluxmap accounts dt]
-  (let [f (fn [account resource-name flux]
+  (let [f (fn [accounts resource-name flux]
             (let [flux-amount (fj* (:rate flux) dt)]
-              (update-in account [resource-name :amount] (partial fj+ flux-amount))))]
+              (update-in accounts [resource-name :amount] (partial fj+ flux-amount))))]
     (reduce-kv f accounts fluxmap)))
 
-(defn do-step
+(defn calc-equilibrium
   [graph blocks accounts dt]
   (let [iter (fn [active-blocks ]
                (let [fluxmap (calc-net-flux graph blocks)
@@ -91,10 +91,24 @@
                                                         accounts
                                                         dt)]
                  (if (= active-blocks active-blocks')
-                   [accounts active-blocks fluxmap]
+                   [active-blocks fluxmap]
                    (recur active-blocks'))
                  ))]
     (iter blocks)))
+
+(defn run-step
+  [graph blocks accounts dt]
+  (let [[active-blocks fluxmap] (calc-equilibrium graph blocks accounts dt)
+        accounts' (apply-flux fluxmap accounts dt)]
+    [accounts' active-blocks fluxmap]))
+
+(defn run-steps
+  [N graph blocks accounts dt]
+  (let [ret (run-step graph blocks accounts dt)
+        [accounts' blocks' fluxmap] ret]
+    (if (> N 1)
+      (recur (- N 1) graph blocks' accounts' dt)
+      ret)))
 
 (defn -main
   "I don't do a whole lot ... yet."
