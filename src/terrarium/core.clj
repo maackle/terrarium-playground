@@ -76,8 +76,10 @@
 
 (defn apply-flux
   [fluxmap accounts dt]
-  (let [f (fn [flux])])
-  (reduce-kv #() accounts fluxmap))
+  (let [f (fn [account resource-name flux]
+            (let [flux-amount (fj* (:rate flux) dt)]
+              (update-in account [resource-name :amount] (partial fj+ flux-amount))))]
+    (reduce-kv f accounts fluxmap)))
 
 #_(defn do-step
   [graph blocks dt]

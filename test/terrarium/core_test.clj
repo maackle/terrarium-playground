@@ -71,9 +71,16 @@
       #_(is (= :umm (get-in fluxmap [:r1 :ports]))))
 
     (testing "calc-net-flux-zero"
-      (def flux (calc-net-flux graph []))
-      (is (= nil (get-in flux [:r1 :amount :v])))
-      (is (= nil (get-in flux [:r1 :ports]))))
+      (def fluxmap (calc-net-flux graph []))
+      (is (= nil (get-in fluxmap [:r1 :amount :v])))
+      (is (= nil (get-in fluxmap [:r1 :ports]))))
+
+    (testing "apply-flux"
+      (let [fluxmap (calc-net-flux graph blocks)
+            accounts' (apply-flux fluxmap accounts dt)]
+        (trace accounts)
+        (trace accounts')
+        (is ((comp not =) accounts accounts'))))
 
     (testing "calc-active-blocks"
       (let [blockmap (keyed :name blocks)
