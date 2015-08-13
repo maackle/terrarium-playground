@@ -18,13 +18,14 @@
     [(in  (B :X) :a (fj 20 :L :per :day))
      (in  (B :X) :b (fj 2 :kg :per :day))
      (out (B :X) :c (fj 3 :lb :per :day))
-     (out (B :X) :d (fj 4 :lb :per :day))
+     (out (B :X) :d (fj 4 :L :per :day))
 
      (in  (B :Y) :a (fj 5 :L :per :day))
      (in  (B :Y) :b (fj 5 :L :per :day))
      (out (B :Y) :c (fj 6 :L :per :day))
      (out (B :Y) :d (fj 700 :g :per :day))
 
+     (in (B :Z) :i (fj 8 :L :per :day))
      (out (B :Z) :a (fj 800 :mL :per :day))]))
 
 (def resources (map mk-resource [:r1 :r2 :r3]))
@@ -46,7 +47,7 @@
         graph (build-graph ports resources connections)]
 
     (testing "graph structure"
-      (is (= 12 (count (uber/nodes graph))))
+      (is (= 13 (count (uber/nodes graph))))
       (is (= 2 (count (uber/edges graph)))))
 
     ; TODOs
@@ -58,8 +59,12 @@
 
   (let [connections (mk-connections ports resources [[[:Z :a] :r1 [:Y :b]]
                                                      [[:Y :c] :r2 [:X :a]]])
+        connections-loop (mk-connections ports resources [[[:Z :a] :r1 [:Y :b]]
+                                                          [[:Y :c] :r2 [:X :a]]
+                                                          [[:X :d] :r3 [:Z :i]]])
         dt (fj 1 :day)
         graph (build-graph ports resources connections)
+        graph-loop (build-graph ports resources connections-loop)
         accounts (keyed :name [(->Account :r1 (fj 10 :L))
                                (->Account :r2 (fj 10 :L))])
         state (atom {:graph graph
@@ -97,6 +102,27 @@
             [accounts active-blocks fluxmap] ret
             blockmap (keyed :name blocks)]
         (is (= active-blocks [(:Y blockmap) (:Z blockmap)]))
-        (is (= 0 (get-in fluxmap [:r1 :rate])))))
+        ))
+
+
+    (testing "calc-active-blocks-loop"
+      (let [blockmap (keyed :name blocks)
+            fluxmap (calc-net-flux graph-loop blocks)
+            bigger-accounts (assoc-in accounts [:r2 :amount] (fj 1000 :L))]
+        (is (=
+              (calc-active-blocks graph-loop fluxmap blocks accounts dt)
+              [(:Y blockmap) (:Z blockmap)]))
+        (is (=
+              (calc-active-blocks graph-loop fluxmap blocks bigger-accounts dt)
+              [(:X blockmap) (:Y blockmap) (:Z blockmap)]))
+        ))
+
+
+    (testing "do-step-loop"
+      (let [ret (do-step graph-loop blocks accounts dt)
+            [accounts active-blocks fluxmap] ret
+            blockmap (keyed :name blocks)]
+        (is (= active-blocks [(:Y blockmap) (:Z blockmap)]))
+        (is (= 0 (get-in (trace fluxmap) [:r2 :rate])))))
     )
   )
