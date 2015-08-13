@@ -60,24 +60,30 @@
                                                      [[:Y :c] :r2 [:X :a]]])
         dt (fj 1 :day)
         graph (build-graph ports resources connections)
-        accounts [(->Account :r1 (fj 10 :L))
-                  (->Account :r2 (fj 10 :L))]
+        accounts (keyed :name [(->Account :r1 (fj 10 :L))
+                               (->Account :r2 (fj 10 :L))])
         state (atom {:graph graph
                      :accounts accounts})]
 
     (testing "calc-net-flux"
-      (def flux (calc-net-flux graph dt))
-      (is (= :umm (get-in flux [:r1 :ports])))
-      (is (= 17/2500 (get-in flux [:r1 :amount :v]))))
+      (def fluxmap (calc-net-flux graph blocks))
+      (is (> 0 (get-in fluxmap [:r1 :rate :v])))
+      #_(is (= :umm (get-in fluxmap [:r1 :ports]))))
+
+    (testing "calc-net-flux-zero"
+      (def flux (calc-net-flux graph []))
+      (is (= nil (get-in flux [:r1 :amount :v])))
+      (is (= nil (get-in flux [:r1 :ports]))))
 
     (testing "calc-active-blocks"
-      (let [blockmap (keyed :name blocks)]
+      (let [blockmap (keyed :name blocks)
+            fluxmap (calc-net-flux graph blocks)
+            bigger-accounts (assoc-in accounts [:r2 :amount] (fj 1000 :L))]
         (is (=
-              (calc-active-blocks @state dt)
+              (calc-active-blocks graph fluxmap blocks accounts dt)
               [(:Y blockmap) (:Z blockmap)]))
-        (swap! state assoc-in [:accounts 1 :amount] (fj 1000 :L))
         (is (=
-              (calc-active-blocks @state dt)
+              (calc-active-blocks graph fluxmap blocks bigger-accounts dt)
               [(:X blockmap) (:Y blockmap) (:Z blockmap)]))
         ))
     )

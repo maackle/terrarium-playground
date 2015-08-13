@@ -41,41 +41,48 @@
 
 (defn calc-net-flux
   "Calculate net in/out flow through each Account."
-  [graph dt]
+  [graph active-blocks]
   (let [edges (uber/edges graph)
+        active-block-set (set active-blocks)
         edgemaps (map edge-to-map edges)
-        get-amount #(if % (fj* % dt))
-        initial-fluxmap {:amount nil :ports [] :blocks #{}}
+        initial-fluxmap {}
         reduce-fn (fn [fluxmap edgemap]
                     (if-let [port (if (contains? edgemap :input) (:input edgemap) (:output edgemap))]
-                      (let [resource (:resource edgemap)
-                            flux (port-flux port)
-                            amount (fj* flux dt)
-                            res-name (:name resource)]
-                        (-> fluxmap
-                          (update-in [res-name :amount] #(if % (fj+ % amount) amount))
-                          (update-in [res-name :ports] #(conj % port))))
+                      (if (contains? active-block-set (:block port))
+                        (let [resource (:resource edgemap)
+                              rate (port-flux port)
+                              res-name (:name resource)]
+                          (-> fluxmap
+                              (update-in [res-name :rate] #(if % (fj+ % rate) rate))
+                              (update-in [res-name :ports] #(conj % port))))
+                        fluxmap)
                       fluxmap))]
     (reduce reduce-fn initial-fluxmap edgemaps)))
 
 (defn calc-active-blocks
-  [{:keys [graph accounts]} dt]
-  (let [blocks (->> graph uber/nodes (filter port-node?) (map :block) distinct)
-        fluxmap (calc-net-flux graph dt)
+  [graph fluxmap blocks accounts dt]
+  (let [;fluxmap (calc-net-flux graph blocks)
         rf (fn [active-blocks account]
              (let [{account-name :name account-amount :amount} account
-                   {flux-amount :amount flux-ports :ports} (get fluxmap account-name)
+                   {flux-rate :rate flux-ports :ports} (get fluxmap account-name)
+                   flux-amount (fj* flux-rate dt)
                    inputs (filter (comp (partial = :input) :type) flux-ports)
                    input-blocks (->> inputs (map :block) set)]
                (if (> 0 (:v (fj+ account-amount flux-amount)))
                  (remove #(contains? input-blocks %) active-blocks)
                  active-blocks)
                ))]
-    (reduce rf blocks accounts)))
+    (reduce rf blocks (vals accounts))))
 
-(defn do-step
-  [state dt]
-  (let [graph (:graph @state)
+(defn apply-flux
+  [fluxmap accounts dt]
+  (let [f (fn [flux])])
+  (reduce-kv #() accounts fluxmap))
+
+#_(defn do-step
+  [graph blocks dt]
+  (let [iter (fn [blocks ]
+               (calc-net-flux))
         accounts (:accounts @state)]
 
     ))
