@@ -33,10 +33,10 @@
 (deftest core
 
   (let [connections (mk-connections ports resources [[[:X :a] :r1 [:Y :c]]])
-        graph (build-graph ports resources connections)]
+        graph-linear (build-graph ports resources connections)]
 
     (testing "edge-to-map"
-      (let [maps (map edge-to-map (uber/edges graph))]
+      (let [maps (map edge-to-map (uber/edges graph-linear))]
         (is (= 2 (count maps)))
         (is (every? #(contains? % :resource) maps))
         ))))
@@ -44,11 +44,11 @@
 (deftest graph-structure
 
   (let [connections (mk-connections ports resources [[[:X :a] :r1 [:Y :c]]])
-        graph (build-graph ports resources connections)]
+        graph-linear (build-graph ports resources connections)]
 
     (testing "graph structure"
-      (is (= 13 (count (uber/nodes graph))))
-      (is (= 2 (count (uber/edges graph)))))
+      (is (= 13 (count (uber/nodes graph-linear))))
+      (is (= 2 (count (uber/edges graph-linear)))))
 
     ; TODOs
     ; - test that outputs and inputs don't show up in the wrong places
@@ -63,32 +63,32 @@
                                                           [[:Y :c] :r2 [:X :a]]
                                                           [[:X :c] :r3 [:Z :a]]])
         dt (fj 1 :s)
-        graph (build-graph ports resources connections)
+        graph-linear (build-graph ports resources connections)
         graph-loop (build-graph ports resources connections-loop)
         accounts (keyed :name [(->Account :r1 (fj 10 :kg))
                                (->Account :r2 (fj 10 :kg))
                                (->Account :r3 (fj 10 :kg))])
-        state (atom {:graph graph
+        state (atom {:graph graph-linear
                      :accounts accounts})]
 
     (testing "calc-net-flux"
-      (def fluxmap (calc-net-flux graph blocks))
+      (def fluxmap (calc-net-flux graph-linear blocks))
       (is (> 0 (get-in fluxmap [:r1 :rate :v])))
       #_(is (= :umm (get-in fluxmap [:r1 :ports]))))
 
     (testing "calc-net-flux-zero"
-      (def fluxmap (calc-net-flux graph []))
+      (def fluxmap (calc-net-flux graph-linear []))
       (is (= nil (get-in fluxmap [:r1 :amount :v])))
       (is (= nil (get-in fluxmap [:r1 :ports]))))
 
     (testing "apply-flux"
-      (let [fluxmap (calc-net-flux graph blocks)
+      (let [fluxmap (calc-net-flux graph-linear blocks)
             accounts' (apply-flux accounts fluxmap dt)]
         (is ((comp not =) accounts accounts'))))
 
     (testing "calc-active-blocks"
       (let [blockmap (keyed :name blocks)
-            fluxmap (calc-net-flux graph blocks)
+            fluxmap (calc-net-flux graph-linear blocks)
             bigger-accounts (assoc-in accounts [:r2 :amount] (fj 1000 :kg))]
         (is (=
               (calc-active-blocks blocks accounts fluxmap dt)
@@ -120,7 +120,7 @@
             expected (zipmap (map inc (range)) expected)
             blockmap (keyed :name blocks)]
         (doseq [[N ex] expected]
-          (let [ret (run-steps N graph accounts blocks dt)
+          (let [ret (run-steps N graph-loop accounts blocks dt)
                 [accounts active-blocks fluxmap] ret
                 account-amounts (map #(get-in % [:amount :v])
                                      (get-keys accounts [:r1 :r2 :r3]))

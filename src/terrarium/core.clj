@@ -45,7 +45,6 @@
   (let [edges (uber/edges graph)
         active-block-set (set active-blocks)
         edgemaps (map edge-to-map edges)
-        initial-fluxmap {}
         reduce-fn (fn [fluxmap edgemap]
                     (if-let [port (if (contains? edgemap :input) (:input edgemap) (:output edgemap))]
                       (if (contains? active-block-set (:block port))
@@ -57,7 +56,7 @@
                               (update-in [res-name :ports] #(conj % port))))
                         fluxmap)
                       fluxmap))]
-    (reduce reduce-fn initial-fluxmap edgemaps)))
+    (reduce reduce-fn {} edgemaps)))
 
 (defn calc-active-blocks
   [blocks accounts fluxmap dt]
