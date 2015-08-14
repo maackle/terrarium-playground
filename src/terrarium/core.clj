@@ -60,9 +60,8 @@
     (reduce reduce-fn initial-fluxmap edgemaps)))
 
 (defn calc-active-blocks
-  [graph fluxmap blocks accounts dt]
-  (let [;fluxmap (calc-net-flux graph blocks)
-        rf (fn [active-blocks account]
+  [blocks accounts fluxmap dt]
+  (let [rf (fn [active-blocks account]
              (let [{account-name :name account-amount :amount} account
                    {flux-rate :rate flux-ports :ports} (get fluxmap account-name)
                    flux-amount (fj* flux-rate dt)
@@ -75,20 +74,19 @@
     (reduce rf blocks (vals accounts))))
 
 (defn apply-flux
-  [fluxmap accounts dt]
+  [accounts fluxmap dt]
   (let [f (fn [accounts resource-name flux]
             (let [flux-amount (fj* (:rate flux) dt)]
               (update-in accounts [resource-name :amount] (partial fj+ flux-amount))))]
     (reduce-kv f accounts fluxmap)))
 
 (defn calc-equilibrium
-  [graph blocks accounts dt]
+  [graph accounts blocks dt]
   (let [iter (fn [active-blocks ]
                (let [fluxmap (calc-net-flux graph blocks)
-                     active-blocks' (calc-active-blocks graph
-                                                        fluxmap
-                                                        active-blocks
+                     active-blocks' (calc-active-blocks active-blocks
                                                         accounts
+                                                        fluxmap
                                                         dt)]
                  (if (= active-blocks active-blocks')
                    [active-blocks fluxmap]
@@ -97,17 +95,17 @@
     (iter blocks)))
 
 (defn run-step
-  [graph blocks accounts dt]
-  (let [[active-blocks fluxmap] (calc-equilibrium graph blocks accounts dt)
-        accounts' (apply-flux fluxmap accounts dt)]
+  [graph accounts blocks dt]
+  (let [[active-blocks fluxmap] (calc-equilibrium graph accounts blocks dt)
+        accounts' (apply-flux accounts fluxmap dt)]
     [accounts' active-blocks fluxmap]))
 
 (defn run-steps
-  [N graph blocks accounts dt]
-  (let [ret (run-step graph blocks accounts dt)
+  [N graph accounts blocks dt]
+  (let [ret (run-step graph accounts blocks dt)
         [accounts' blocks' fluxmap] ret]
     (if (> N 1)
-      (recur (- N 1) graph blocks' accounts' dt)
+      (recur (- N 1) graph accounts' blocks' dt)
       ret)))
 
 (defn -main

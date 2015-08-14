@@ -82,7 +82,7 @@
 
     (testing "apply-flux"
       (let [fluxmap (calc-net-flux graph blocks)
-            accounts' (apply-flux fluxmap accounts dt)]
+            accounts' (apply-flux accounts fluxmap dt)]
         (is ((comp not =) accounts accounts'))))
 
     (testing "calc-active-blocks"
@@ -90,30 +90,22 @@
             fluxmap (calc-net-flux graph blocks)
             bigger-accounts (assoc-in accounts [:r2 :amount] (fj 1000 :kg))]
         (is (=
-              (calc-active-blocks graph fluxmap blocks accounts dt)
+              (calc-active-blocks blocks accounts fluxmap dt)
               [(:Y blockmap) (:Z blockmap)]))
         (is (=
-              (calc-active-blocks graph fluxmap blocks bigger-accounts dt)
+              (calc-active-blocks blocks bigger-accounts fluxmap dt)
               [(:X blockmap) (:Y blockmap) (:Z blockmap)]))
         ))
-
-    (testing "run-step"
-      (let [ret (run-step graph blocks accounts dt)
-            [accounts active-blocks fluxmap] ret
-            blockmap (keyed :name blocks)]
-        (is (= active-blocks [(:Y blockmap) (:Z blockmap)]))
-        ))
-
 
     (testing "calc-active-blocks-loop"
       (let [blockmap (keyed :name blocks)
             fluxmap (calc-net-flux graph-loop blocks)
             bigger-accounts (assoc-in accounts [:r2 :amount] (fj 1000 :kg))]
         (is (=
-              (calc-active-blocks graph-loop fluxmap blocks accounts dt)
+              (calc-active-blocks blocks accounts fluxmap dt)
               [(:Y blockmap) (:Z blockmap)]))
         (is (=
-              (calc-active-blocks graph-loop fluxmap blocks bigger-accounts dt)
+              (calc-active-blocks blocks bigger-accounts fluxmap dt)
               [(:X blockmap) (:Y blockmap) (:Z blockmap)]))
         ))
 
@@ -128,7 +120,8 @@
             expected (zipmap (map inc (range)) expected)
             blockmap (keyed :name blocks)]
         (doseq [[N ex] expected]
-          (let [ret (run-steps N graph blocks accounts dt)]
+          (let [ret (run-steps N graph accounts blocks dt)
+                ]
             (trace ret)))
         #_(trace (map (fn [[k v]] [k (get-in v [:rate :v])]) fluxmap))
         #_(is (= active-blocks [(:Y blockmap) (:Z blockmap)]))
