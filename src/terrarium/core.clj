@@ -60,16 +60,16 @@
 
 (defn calc-active-blocks
   [blocks accounts fluxmap dt]
-  (let [rf (fn [active-blocks account]
-             (let [{account-name :name account-amount :amount} account
-                   {flux-rate :rate flux-ports :ports} (get fluxmap account-name)
-                   flux-amount (fj* flux-rate dt)
-                   inputs (filter (comp (partial = :input) :type) flux-ports)
-                   input-blocks (->> inputs (map :block) set)]
-               (if (> 0 (:v (fj+ account-amount flux-amount)))
-                 (remove #(contains? input-blocks %) active-blocks)
-                 active-blocks)
-               ))]
+  (let [rf (fn [active-blocks {account-name :name account-amount :amount}]
+             (if-let [flux (get fluxmap account-name)]
+               (let [{flux-rate :rate flux-ports :ports} flux
+                     flux-amount (fj* flux-rate dt)
+                     inputs (filter (comp (partial = :input) :type) flux-ports)
+                     input-blocks (->> inputs (map :block) set)]
+                 (if (> 0 (:v (fj+ account-amount flux-amount)))
+                   (remove #(contains? input-blocks %) active-blocks)
+                   active-blocks))
+               active-blocks))]
     (reduce rf blocks (vals accounts))))
 
 (defn apply-flux

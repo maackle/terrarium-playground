@@ -57,13 +57,13 @@
 
 (deftest less-simple
 
-  (let [connections (mk-connections ports resources [[[:Z :c] :r1 [:Y :a]]
-                                                     [[:Y :c] :r2 [:X :a]]])
+  (let [connections-linear (mk-connections ports resources [[[:Z :c] :r1 [:Y :a]]
+                                                            [[:Y :c] :r2 [:X :a]]])
         connections-loop (mk-connections ports resources [[[:Z :c] :r1 [:Y :a]]
                                                           [[:Y :c] :r2 [:X :a]]
                                                           [[:X :c] :r3 [:Z :a]]])
         dt (fj 1 :s)
-        graph-linear (build-graph ports resources connections)
+        graph-linear (build-graph ports resources connections-linear)
         graph-loop (build-graph ports resources connections-loop)
         accounts (keyed :name [(->Account :r1 (fj 10 :kg))
                                (->Account :r2 (fj 10 :kg))
@@ -112,6 +112,22 @@
 
     (testing "run-step-loop"
       (let [expected [[[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
                       [[10 10 10] [:X :Y :Z] [1 1 -2]]
                       [[10 10 10] [:X :Y :Z] [1 1 -2]]
                       [[10 10 10] [:X :Y :Z] [1 1 -2]]
