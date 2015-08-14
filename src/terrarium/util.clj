@@ -11,6 +11,12 @@
   (first (filter #(= name (get % :name)) coll)))
 
 
+(defn get-keys
+  "Return a vector of values in m corresponding to ks, in order"
+  [m ks]
+  (reduce (fn [s k] (conj s (m k))) [] ks))
+
+
 (defmacro and-let
   "from http://edtsech.github.io/2012/12/and-let.html"
   [bindings expr]
@@ -20,4 +26,8 @@
      expr))
 
 
-(defn trace [x] (println "   vvvvvv   \n" x) x)
+(defn trace
+  ([x]
+   (trace " vvvvv " x))
+  ([msg x]
+   (println (str "------ " msg " -------\n") x) x))

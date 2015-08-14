@@ -66,7 +66,8 @@
         graph (build-graph ports resources connections)
         graph-loop (build-graph ports resources connections-loop)
         accounts (keyed :name [(->Account :r1 (fj 10 :kg))
-                               (->Account :r2 (fj 10 :kg))])
+                               (->Account :r2 (fj 10 :kg))
+                               (->Account :r3 (fj 10 :kg))])
         state (atom {:graph graph
                      :accounts accounts})]
 
@@ -109,7 +110,6 @@
               [(:X blockmap) (:Y blockmap) (:Z blockmap)]))
         ))
 
-
     (testing "run-step-loop"
       (let [expected [[[10 10 10] [:X :Y :Z] [1 1 -2]]
                       [[10 10 10] [:X :Y :Z] [1 1 -2]]
@@ -121,8 +121,14 @@
             blockmap (keyed :name blocks)]
         (doseq [[N ex] expected]
           (let [ret (run-steps N graph accounts blocks dt)
-                ]
-            (trace ret)))
+                [accounts active-blocks fluxmap] ret
+                account-amounts (map #(get-in % [:amount :v])
+                                     (get-keys accounts [:r1 :r2 :r3]))
+                block-names (set (map :name active-blocks))
+                flux-rates (map #(get-in % [:rate :v])
+                                (get-keys fluxmap [:r1 :r2 :r3]))]
+            (prn account-amounts block-names flux-rates)
+            ))
         #_(trace (map (fn [[k v]] [k (get-in v [:rate :v])]) fluxmap))
         #_(is (= active-blocks [(:Y blockmap) (:Z blockmap)]))
         #_(is (= 0 (get-in (trace fluxmap) [:r3 :rate :v])))))
