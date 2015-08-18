@@ -133,8 +133,9 @@
                       [[10 10 10] [:X :Y :Z] [1 1 -2]]
                       [[10 10 10] [:X :Y :Z] [1 1 -2]]
                       [[10 10 10] [:X :Y :Z] [1 1 -2]]]
-            expected (zipmap (map inc (range)) expected)
+            expected (map list (map inc (range)) expected)
             blockmap (keyed :name blocks)]
+        (prn "\n")
         (doseq [[N ex] expected]
           (let [ret (run-steps N graph-loop accounts blocks dt)
                 [accounts active-blocks fluxmap] ret
@@ -143,7 +144,7 @@
                 block-names (set (map :name active-blocks))
                 flux-rates (map #(get-in % [:rate :v])
                                 (get-keys fluxmap [:r1 :r2 :r3]))]
-            (prn account-amounts block-names flux-rates)
+            (prn N account-amounts (sort block-names) flux-rates)
             ))
         #_(trace (map (fn [[k v]] [k (get-in v [:rate :v])]) fluxmap))
         #_(is (= active-blocks [(:Y blockmap) (:Z blockmap)]))
