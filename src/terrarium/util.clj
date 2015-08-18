@@ -16,6 +16,12 @@
   [m ks]
   (reduce (fn [s k] (conj s (m k))) [] ks))
 
+(defn get-keys-in
+  ([fluxmap path ks not-found]
+   (map #(get-in % path not-found) (get-keys fluxmap ks)))
+  ([fluxmap path ks]
+   (get-keys-in fluxmap path ks nil)))
+
 
 (defmacro and-let
   "from http://edtsech.github.io/2012/12/and-let.html"

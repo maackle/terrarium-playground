@@ -54,12 +54,6 @@
     ; - test that outputs and inputs don't show up in the wrong places
     ))
 
-(defn get-keys-in
-  ([fluxmap path ks not-found]
-   (map #(get-in % path not-found) (get-keys fluxmap ks)))
-  ([fluxmap path ks]
-   (get-keys-in path ks nil)))
-
 (deftest less-simple
 
   (let [connections-loop (mk-connections ports resources [[[:Y :c] :r1 [:X :a]]
@@ -89,11 +83,6 @@
             (is (= rates expected-rates))))
         ))
 
-    (testing "calc-net-flux-zero"
-      (def fluxmap (calc-net-flux graph-loop []))
-      (is (= nil (get-in fluxmap [:r1 :amount :v])))
-      (is (= nil (get-in fluxmap [:r1 :ports]))))
-
     (testing "apply-flux"
       (let [fluxmap (calc-net-flux graph-loop blocks)
             accounts' (apply-flux accounts fluxmap dt)]
@@ -112,7 +101,7 @@
               [(:X blockmap) (:Y blockmap) (:Z blockmap)]))
         ))
 
-    #_(testing "run-step-loop"
+    (testing "run-step-loop"
       (let [expected [[[10 10 10] [:X :Y :Z] [1 1 -2]]
                       [[10 10 10] [:X :Y :Z] [1 1 -2]]
                       [[10 10 10] [:X :Y :Z] [1 1 -2]]
@@ -146,15 +135,13 @@
         (doseq [[N ex] expected]
           (let [ret (run-steps N graph-loop accounts blocks dt)
                 [accounts active-blocks fluxmap] ret
-                account-amounts (map #(get-in % [:amount :v])
-                                     (get-keys accounts [:r1 :r2 :r3]))
+                account-amounts (get-keys-in accounts [:amount :v] [:r1 :r2 :r3])
                 block-names (set (map :name active-blocks))
-                flux-rates (map #(get-in % [:rate :v])
-                                (get-keys fluxmap [:r1 :r2 :r3]))]
+                flux-rates (get-keys-in fluxmap [:rate :v] [:r1 :r2 :r3] 0)]
             (prn)
             (prn N account-amounts (sort block-names) flux-rates)
             (prn)
-            (pprint fluxmap)
+            #_(pprint fluxmap)
             ))
         #_(trace (map (fn [[k v]] [k (get-in v [:rate :v])]) fluxmap))
         #_(is (= active-blocks [(:Y blockmap) (:Z blockmap)]))
