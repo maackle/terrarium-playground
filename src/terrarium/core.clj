@@ -21,17 +21,6 @@
     :input (fj-inv (:rate port))
     nil))
 
-#_(defn get-resources
-  [graph]
-  (let [edges (uber/edges graph)]
-    (distinct (map #(uber/attrs graph %) edges))))
-
-#_(defn get-ports
-  [graph]
-  (let [edges (uber/edges graph)]
-    (mapcat #(conj [] (uber/src %1) (uber/dest %1)) edges)
-))
-
 (defn get-resource-name [graph edge] (uber/attr graph edge :name))
 
 (defn edge-to-map
@@ -58,6 +47,10 @@
                       fluxmap))]
     (reduce reduce-fn {} edgemaps)))
 
+(defn get-flux-rates
+  [fluxmap]
+  (get-keys-in fluxmap [:rate :v] [:r1 :r2 :r3] 0))
+
 (defn calc-active-blocks
   [blocks accounts fluxmap dt]
   (let [rf (fn [active-blocks {account-name :name account-amount :amount}]
@@ -82,7 +75,7 @@
 (defn calc-equilibrium
   [graph accounts blocks dt]
   (let [iter (fn [active-blocks]
-               (let [fluxmap (calc-net-flux graph blocks)
+               (let [fluxmap (calc-net-flux graph active-blocks)
                      active-blocks' (calc-active-blocks active-blocks
                                                         accounts
                                                         fluxmap
