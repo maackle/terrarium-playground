@@ -102,42 +102,45 @@
         ))
 
     (testing "run-step-loop"
-      (let [expected [[[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
-                      [[10 10 10] [:X :Y :Z] [1 1 -2]]]
+      (let [expected [[[11 11 8] [:X :Y :Z] [1 1 -2]]
+                      [[12 12 6] [:X :Y :Z] [1 1 -2]]
+                      [[13 13 4] [:X :Y :Z] [1 1 -2]]
+                      [[14 14 2] [:X :Y :Z] [1 1 -2]]
+                      [[15 15 0] [:X :Y :Z] [1 1 -2]]
+                      [[16 13 1] [:X :Y] [1 -2 1]]
+                      [[17 11 2] [:X :Y] [1 -2 1]]
+                      [[18 12 0] [:X :Y :Z] [1 1 -2]]
+                      [[19 10 1] [:X :Y] [1 -2 1]]
+                      [[20 8 2] [:X :Y] [1 -2 1]]
+                      [[21 9 0] [:X :Y :Z] [1 1 -2]]
+                      [[22 7 1] [:X :Y] [1 -2 1]]
+                      [[23 5 2] [:X :Y] [1 -2 1]]
+                      [[24 6 0] [:X :Y :Z] [1 1 -2]]
+                      [[25 4 1] [:X :Y] [1 -2 1]]
+                      [[26 2 2] [:X :Y] [1 -2 1]]
+                      [[27 3 0] [:X :Y :Z] [1 1 -2]]
+                      [[28 1 1] [:X :Y] [1 -2 1]]
+                      [[27 1 2] [:X] [-1 0 1]]
+                      [[28 2 0] [:X :Y :Z] [1 1 -2]]
+                      [[29 0 1] [:X :Y] [1 -2 1]]
+                      [[28 0 2] [:X] [-1 0 1]]
+                      [[29 1 0] [:X :Y :Z] [1 1 -2]]
+                      [[28 1 1] [:X] [-1 0 1]]
+                      [[27 1 2] [:X] [-1 0 1]]
+                      [[28 2 0] [:X :Y :Z] [1 1 -2]]
+                      [[29 0 1] [:X :Y] [1 -2 1]]]
             expected (map list (map inc (range)) expected)
             blockmap (keyed :name blocks)]
-        (doseq [[N ex] expected]
+        (doseq [[N [ex-amounts ex-blocks ex-flux]] expected]
           (let [ret (run-steps N graph-loop accounts blocks dt)
                 [accounts active-blocks fluxmap] ret
                 account-amounts (get-keys-in accounts [:amount :v] [:r1 :r2 :r3])
-                block-names (set (map :name active-blocks))
+                block-names (map :name active-blocks)
                 flux-rates (get-keys-in fluxmap [:rate :v] [:r1 :r2 :r3] 0)]
-            (prn N account-amounts (sort block-names) flux-rates)
+            (is (= ex-amounts account-amounts))
+            (is (= ex-blocks block-names))
+            (is (= ex-flux flux-rates))
+            ; (prn N account-amounts (sort block-names) flux-rates)
             ))
         #_(trace (map (fn [[k v]] [k (get-in v [:rate :v])]) fluxmap))
         #_(is (= active-blocks [(:Y blockmap) (:Z blockmap)]))
