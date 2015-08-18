@@ -105,7 +105,7 @@
   (let [ret (run-step graph accounts blocks dt)
         [accounts' blocks' fluxmap] ret]
     (if (> N 1)
-      (recur (- N 1) graph accounts' blocks' dt)
+      (recur (- N 1) graph accounts' blocks dt)
       ret)))
 
 (defn -main

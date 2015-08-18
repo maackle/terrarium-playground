@@ -54,64 +54,71 @@
     ; - test that outputs and inputs don't show up in the wrong places
     ))
 
+(defn get-keys-in
+  ([fluxmap path ks not-found]
+   (map #(get-in % path not-found) (get-keys fluxmap ks)))
+  ([fluxmap path ks]
+   (get-keys-in path ks nil)))
 
 (deftest less-simple
 
-  (let [connections-linear (mk-connections ports resources [[[:Z :c] :r1 [:Y :a]]
-                                                            [[:Y :c] :r2 [:X :a]]])
-        connections-loop (mk-connections ports resources [[[:Z :c] :r1 [:Y :a]]
-                                                          [[:Y :c] :r2 [:X :a]]
+  (let [connections-loop (mk-connections ports resources [[[:Y :c] :r1 [:X :a]]
+                                                          [[:Z :c] :r2 [:Y :a]]
                                                           [[:X :c] :r3 [:Z :a]]])
         dt (fj 1 :s)
-        graph-linear (build-graph ports resources connections-linear)
         graph-loop (build-graph ports resources connections-loop)
         accounts (keyed :name [(->Account :r1 (fj 10 :kg))
                                (->Account :r2 (fj 10 :kg))
                                (->Account :r3 (fj 10 :kg))])
-        state (atom {:graph graph-linear
+        state (atom {:graph graph-loop
                      :accounts accounts})]
 
     (testing "calc-net-flux"
-      (def fluxmap (calc-net-flux graph-linear blocks))
-      (is (> 0 (get-in fluxmap [:r1 :rate :v])))
-      #_(is (= :umm (get-in fluxmap [:r1 :ports]))))
+      (let [expected [[[]         [0 0 0]]
+                      [[:X]       [-1 0 1]]
+                      [[:Y]       [2 -2 0]]
+                      [[:X :Y]    [1 -2 1]]
+                      [[:Z]       [0 3 -3]]
+                      [[:Z :X]    [-1 3 -2]]
+                      [[:Z :Y]    [2 1 -3]]
+                      [[:Z :Y :X] [1 1 -2]]]
+            blockmap (keyed :name blocks)]
+        (doseq [[block-names rates] expected]
+          (let [fluxmap (calc-net-flux graph-loop (get-keys blockmap block-names))
+                expected-rates (get-keys-in fluxmap [:rate :v] [:r1 :r2 :r3] 0)]
+            (is (= rates expected-rates))))
+        ))
 
     (testing "calc-net-flux-zero"
-      (def fluxmap (calc-net-flux graph-linear []))
+      (def fluxmap (calc-net-flux graph-loop []))
       (is (= nil (get-in fluxmap [:r1 :amount :v])))
       (is (= nil (get-in fluxmap [:r1 :ports]))))
 
     (testing "apply-flux"
-      (let [fluxmap (calc-net-flux graph-linear blocks)
+      (let [fluxmap (calc-net-flux graph-loop blocks)
             accounts' (apply-flux accounts fluxmap dt)]
         (is ((comp not =) accounts accounts'))))
 
     (testing "calc-active-blocks"
       (let [blockmap (keyed :name blocks)
-            fluxmap (calc-net-flux graph-linear blocks)
-            bigger-accounts (assoc-in accounts [:r2 :amount] (fj 1000 :kg))]
-        (is (=
-              (calc-active-blocks blocks accounts fluxmap dt)
-              [(:Y blockmap) (:Z blockmap)]))
-        (is (=
-              (calc-active-blocks blocks bigger-accounts fluxmap dt)
-              [(:X blockmap) (:Y blockmap) (:Z blockmap)]))
-        ))
-
-    (testing "calc-active-blocks-loop"
-      (let [blockmap (keyed :name blocks)
             fluxmap (calc-net-flux graph-loop blocks)
+            smaller-accounts (assoc-in accounts [:r3 :amount] (fj 0 :kg))
             bigger-accounts (assoc-in accounts [:r2 :amount] (fj 1000 :kg))]
         (is (=
-              (calc-active-blocks blocks accounts fluxmap dt)
-              [(:Y blockmap) (:Z blockmap)]))
+              (calc-active-blocks blocks smaller-accounts fluxmap dt)
+              [(:X blockmap) (:Y blockmap)]))
         (is (=
-              (calc-active-blocks blocks bigger-accounts fluxmap dt)
+              (calc-active-blocks blocks accounts fluxmap dt)
               [(:X blockmap) (:Y blockmap) (:Z blockmap)]))
         ))
 
-    (testing "run-step-loop"
+    #_(testing "run-step-loop"
       (let [expected [[[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
+                      [[10 10 10] [:X :Y :Z] [1 1 -2]]
                       [[10 10 10] [:X :Y :Z] [1 1 -2]]
                       [[10 10 10] [:X :Y :Z] [1 1 -2]]
                       [[10 10 10] [:X :Y :Z] [1 1 -2]]
@@ -144,7 +151,10 @@
                 block-names (set (map :name active-blocks))
                 flux-rates (map #(get-in % [:rate :v])
                                 (get-keys fluxmap [:r1 :r2 :r3]))]
+            (prn)
             (prn N account-amounts (sort block-names) flux-rates)
+            (prn)
+            (pprint fluxmap)
             ))
         #_(trace (map (fn [[k v]] [k (get-in v [:rate :v])]) fluxmap))
         #_(is (= active-blocks [(:Y blockmap) (:Z blockmap)]))
