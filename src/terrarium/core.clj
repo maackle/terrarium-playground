@@ -81,21 +81,22 @@
 
 (defn calc-equilibrium
   [graph accounts blocks dt]
-  (let [iter (fn [active-blocks ]
+  (let [iter (fn [active-blocks]
                (let [fluxmap (calc-net-flux graph blocks)
                      active-blocks' (calc-active-blocks active-blocks
                                                         accounts
                                                         fluxmap
                                                         dt)]
                  (if (= active-blocks active-blocks')
-                   [active-blocks fluxmap]
+                   active-blocks
                    (recur active-blocks'))
                  ))]
     (iter blocks)))
 
 (defn run-step
   [graph accounts blocks dt]
-  (let [[active-blocks fluxmap] (calc-equilibrium graph accounts blocks dt)
+  (let [active-blocks (calc-equilibrium graph accounts blocks dt)
+        fluxmap (calc-net-flux graph active-blocks)
         accounts' (apply-flux accounts fluxmap dt)]
     [accounts' active-blocks fluxmap]))
 
