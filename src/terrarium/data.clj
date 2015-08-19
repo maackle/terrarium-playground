@@ -33,8 +33,8 @@
 
 (def graph (build-graph ports resources connections))
 
-(def accounts [(->Account :clean-water (fj 0 :gal))
-               (->Account :poo-water (fj 0 :gal))])
+(def accounts [(mk-account :clean-water 0 :gal)
+               (mk-account :poo-water 0 :gal)])
 
 (def initial-state {:graph graph
                     :accounts accounts})

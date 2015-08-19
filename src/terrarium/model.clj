@@ -2,6 +2,7 @@
   (:use clojure.pprint)
   (:require [ubergraph.core :as uber])
   (:require [frinj.jvm :refer (frinj-init!)]
+            [frinj.ops :refer :all]
             [terrarium.util :refer :all])
   )
 
@@ -10,10 +11,18 @@
 (defrecord Block [name])
 (defrecord Port [type block desc rate])
 (defrecord Resource [name])
-(defrecord Account [name amount])
+(defrecord Account [name amount units])
 
 (def mk-port (comp #(assoc % :type :port) ->Port))
 (def mk-resource (comp #(assoc % :type :resource) ->Resource))
+(defn mk-account
+  [name value & units]
+  (let [fj-amount (apply (partial fj value) units)]
+    (->Account name fj-amount units)))
+;;
+(defn to-account-units
+  [v account]
+  (apply (partial to v) (:units account)))
 
 (defn port-node?
   [node]
